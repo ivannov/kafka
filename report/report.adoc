@@ -89,12 +89,68 @@ The rest of this paper will explain this implication in depth and will describe 
 
 == 2. Challenges with microservices data persistence
 
-== 3. Solving the challenges
+Modular or not, split to microservices or developed as a monolith, any reasonable application stores and manipulates data.
+In a classical three-tier application the single database is considered as a central source of truth.
+Even when the business layer is distributed across multiple server nodes, usually the database is shared.
 
-== 4. References
+Is this the right approach for microservice architecture as well?
 
-[[Fowler]] [1] Martin Fowler and James Lewis. Microservices, 2014. http://martinfowler.com/articles/microservices.html.
+Let's start with a small example.
+Suppose that a microservice decides to update its database schema by for example modifying an existing table.
+This change has to be really carefully executed so that it doesn't break other services.
+In the best possible scenario it would include massive amount of regression testing. <<Newman2,[4]>>
 
-[[Newman1]] [2] Sam Newman. Building Microservices. 2015. O'Reilly
+Another drawback of central database is that it is a one size fits all solution.
+Thus one of the most powerful features of the microservice architecture - independent technology decision of different services, is gone.
+On the other hand, if each service is allowed to pick and use its own data store, the services will determine the most effective way of storing their data. <<Hoehne,[5]>>
+
+Thus we come to the conclusion that that there are strong arguments for isolating each service's data in its own store.
+This is known as the _Database per service_ pattern <<Richardson,[6]>>.
+It mandates that the data should be kept private to the service and be accessible only via its public API.
+Thus it helps ensure that the services are loosely coupled: changes to one service context does not impact any other services.
+
+Each service can use the type of database that is best suited to its needs.
+For example, if the Forum service does text searches, it could use ElasticSearch.
+If our User Management service also manipulates a social graph, it could use Neo4j.
+
+It doesn't have to be a separate database per service.
+You can also have private tables per service or separate schema per service. <<Richardson,[6]>> <<Richardson2,[7]>>
+
+This approach however comes with a completely different class of problems.
+Let's take the already mentioned microservices sharing common concepts (like Forum and User Management sharing the concept of a user).
+If we use a central storage, we would have a single table with information about the user and foreign key column(s) in the table(s) that refer to it.
+But in a single database per service there are no shared tables.
+So there we need to have separate copy of the table in each store.
+
+image::separate-table-service.png[title="Database per service pattern", align="center"]
+
+Once we introduce that redundancy, we have to make sure that both tables are kept in sync.
+For example if a user changes their name, it will initially go to the User Manager's store.
+After that it has to be replicated to all other "copies" of that data, including the Forum.
+
+Using distributed transactions that span multiple services does not help here.
+This type of transactions are best avoided because of the CAP theorem.
+Moreover, many NoSQL databases (like the Forum in our above example) don’t support them. <<Richardson,[6]>>
+
+The Database per service pattern has also other disadvantages like harder to implement and more difficult to debug.
+In the next part we will focus, however, on solving the keeping data in sync challenge.
+
+== 3. Solving the data in sync challenge
+
+== 4. Conclusion
+
+== References
+
+[[Fowler]] [1] Martin Fowler and James Lewis. Microservices. 2014. http://martinfowler.com/articles/microservices.html.
+
+[[Newman1]] [2] Sam Newman. Building Microservices, pages 2-7. 2015. O'Reilly
 
 [[Dragoni]] [3] Nicola Dragoni, Saverio Giallorenzo, Alberto Lluch Lafuente, Manuel Mazzara, Fabrizio Montesi, Ruslan Mustafin, Larisa Safina. Microservices: yesterday, today, and tomorrow. 2016. arXiv:1606.04036 [cs.SE]
+
+[[Newman2]] [4] Sam Newman. Building Microservices, page 41. 2015. O'Reilly
+
+[[Hoehne]] [5] Paul Hoehne. Microservices, Persistence: Benefits and Risks. 2016. http://www.marklogic.com/blog/microservices-persistence-benefits-risks/
+
+[[Richardson]] [6] Chris Richardson. Pattern: Database per service. 2016. http://microservices.io/patterns/data/database-per-service.html
+
+[[Richardson2]] [7] Chris Richardson. Does each microservice really need its own database?. 2015. https://plainoldobjects.com/2015/09/02/does-each-microservice-really-need-its-own-database-2/
