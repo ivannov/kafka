@@ -1,0 +1,100 @@
+= Data persistence challenges in Microservice applications
+
+:imagesdir: images
+
+Ivan St. Ivanov
+
+UNWE, “Information Technologies and Communications” department
+
+ivan_st_ivanov@yahoo.com
+
+*Paper Abstract*: This paper looks into the data persistence consequences of breaking monolith applications into multiple microservices.
+The higher scalability and improved lifecycle of separate deployments come with a cost: if data is persisted in a single storage, separate microservices can't be delivered independently; otherwise transaction boundaries can't be used to ensure data consistency.
+The paper looks into the different aspects of the data persistence in a microservices application and proposes optimal solutions for specific microservices usecases beyond those mentioned in general distributed systems research.
+
+*Paper Keywords*: microservices, bounded contexts, data persistence, distributed systems, ACID
+
+== 1. Microservice architecture
+
+Microservice architecture is architectural style that approaches developing a single application as a suite of small services, each running in its own process and communicating with lightweight mechanisms, often an HTTP resource API <<Fowler,[1]>>.
+
+Microservices are small and autonomous abstractions that are handling particular business context of the big application.
+Each one of them can be implemented using different technology and framework.
+Separate microservices can be delivered and scaled independently of each other. <<Newman1,[2]>>
+
+It should be considered as the opposite to the monolith approach, where the application is developed, built and delivered as a single unit.
+The latter might consist internally of several components and submodules.
+But what is essential is that is deployed as a single archive.
+
+We are going to use a sample moderately large web application to illustrate the how a monolith is turned into microservices and what are the challenges that we face after that.
+It is a web store that sells goods.
+It was very well developed and its functionality was split into a few submodules.
+The diagram bellow presents the most important of them:
+
+image::monolith.png[title="Monolith application", align="center"]
+
+The application consists of a _Store_ submodule, which takes care of all the goods on sale, their current quantity and price.
+Then there is the _User management_ submodule, which responsibility is logging in users, keeping track of their profile information and history.
+The _Invoices_ submodule is responsible for getting right issuing invoices upon successful sale.
+Last but not least, the _Forum_ submodule provides capabilities to e-store users to comment and rate the goods that are on sale.
+
+The monolith model has its own benefits:
+
+* Communication between submodules is straightforward and is based on API calls
+* You deploy just a single artifact and let the target platform (i.e. the application server) take care of loading submodules and their dependencies in the proper order
+* Monitoring one system is much easier than monitoring multiple ones.
+Same with debugging
+
+However, once the monolith application grows, its development and maintenance becomes more problematic compared to a really modular solutions.
+We will give two scenarios which prove that claim.
+
+Let's first come back to the delivery model of the e-store.
+It is delivered on a single server (real or virtual, doesn't really matter).
+This server needs to be running on powerful hardware to meet the application resource requirements.
+If in peak moments you decide to scale the application out by adding a new server, you have to purchase or land the same amount of hardware.
+Although the higher system requirements come just from the Store submodule, you must duplicate the whole server.
+
+Another usecase is with updating the application.
+As its owner, you are delivering new features and bug fixes on a regular basis.
+As part of the monolith, you have to run significant set of tests across all the submodules in order to validate a small bug fix in the invoices generation.
+Or introduce unnecessary downtime in the Store for example, when you just want to deliver a small feature in the Forum.
+To avoid that, you might decide to deliver features and fixes of all modules together once every two weeks.
+But in this way the teams that are working on each submodule would lose the autonomy to deliver capabilities at its own pace.
+
+Developing a monolith applications means sticking to one platform for all the submodules.
+This means that if the Store performs best if developed in Java backed by Relational Database, you have to use that for the whole e-store.
+No matter that another combination would be more appropriate for any of the other modules.
+
+A microservice architecture can easily solve these problems.
+According to Dragoni et al <<Dragoni,[3]>>:
+
+* Scaling a microservice architecture does not imply a duplication of all its components and developers can conveniently deploy/dispose instances of services with respect to their load
+* Changing a module of a microservice architecture does not require a complete reboot of the whole system.
+The reboot regards only the microservices of that module.
+* Microservices impose no additional lock-in and developers can freely choose the optimal resources (languages, frameworks, etc.) for the implementation of each microservice besides the communication protocol used for communication between them
+
+So if we split our submodules into microservices, we can get an architecture that is more flexible to scale and easier to maintain:
+
+image::microservices.png[title="Microservice architecture", align="center"]
+
+Now each individual service can be scaled up and out independently from the others.
+The teams that deliver each of them can now be responsible for the whole end-to-end delivery of new features as well as for picking the most suitable technology and framework to implement the respective microservice.
+
+Of course, picking a microservice architectural approach does not come without additional implications.
+One such implication is that the microservices are not completely isolated semantically.
+Which means that their share common concepts.
+For example the users defined in User Management service have their representations in all other modules.
+
+The rest of this paper will explain this implication in depth and will describe and compare possible solutions.
+
+== 2. Challenges with microservices data persistence
+
+== 3. Solving the challenges
+
+== 4. References
+
+[[Fowler]] [1] Martin Fowler and James Lewis. Microservices, 2014. http://martinfowler.com/articles/microservices.html.
+
+[[Newman1]] [2] Sam Newman. Building Microservices. 2015. O'Reilly
+
+[[Dragoni]] [3] Nicola Dragoni, Saverio Giallorenzo, Alberto Lluch Lafuente, Manuel Mazzara, Fabrizio Montesi, Ruslan Mustafin, Larisa Safina. Microservices: yesterday, today, and tomorrow. 2016. arXiv:1606.04036 [cs.SE]
