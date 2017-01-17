@@ -137,6 +137,36 @@ In the next part we will focus, however, on solving the keeping data in sync cha
 
 == 3. Solving the data in sync challenge
 
+We have two microservices that have their own data storage.
+Each data storage may use different technology - relational database, document store or even filesystem.
+Two distinct services may need to store data about one and the same domain object.
+It is very important to note that the different microservices store their own view of the domain object.
+So even if they both use let's say relational database for that, the domain object may be stored in a table with completely different structure.
+If we go back to our user example - the User Manager stores things like user name, password and profile information.
+While the Forum is only interested in user's names and activity.
+
+The problem that we want to solve is what if one of the microservices changes piece of data that is common with the other one.
+In our case, what if a user is registered in the User manager?
+Or if an existing user changes their profile picture.
+These events need to somehow get replicated to the Forum service as well.
+
+One of the options is to make the User Manager call directly some kind of API of the Forum to announce the change.
+But this is not a good solution for two reasons:
+
+* It introduces coupling between the two microservices.
+It is not necessary for the User Manager to know all the other services that deal with users
+* User handling is not Forum's core business.
+That is why it should not be part of its public API
+
+The best solution is to use event-driven architecture here.
+Services publish events when they update data.
+Other service subscribe to events and update their data in response. <<Richardson,[6]>>
+
+image::eda-microservices.png[title="Event driven architecture", align="center"]
+
+Events are immutable structures that capture an interesting point in time that should be broadcast to peers.
+Peers will listen to the events in which they’re interested and make decisions based on that data, store that data, store some derivative of that data, update their own data based on some decision made with that data, etc. <<Posta,[8]>>
+
 == 4. Conclusion
 
 == References
@@ -154,3 +184,5 @@ In the next part we will focus, however, on solving the keeping data in sync cha
 [[Richardson]] [6] Chris Richardson. Pattern: Database per service. 2016. http://microservices.io/patterns/data/database-per-service.html
 
 [[Richardson2]] [7] Chris Richardson. Does each microservice really need its own database?. 2015. https://plainoldobjects.com/2015/09/02/does-each-microservice-really-need-its-own-database-2/
+
+[[Posta]] [8] Christian Posta. The Hardest Part About Microservices: Your Data. 2016. http://blog.christianposta.com/microservices/the-hardest-part-about-microservices-data/
