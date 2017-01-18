@@ -2,6 +2,7 @@ package com.nosoftskills.kafka.forum.model;
 
 import javax.persistence.Entity;
 import java.io.Serializable;
+import java.util.Objects;
 import javax.persistence.Table;
 import javax.persistence.Id;
 import javax.persistence.GeneratedValue;
@@ -15,15 +16,13 @@ import javax.persistence.OneToOne;
 
 @Entity
 @Table(name = "COMMENTS")
-public class Comment implements Serializable {
+public class Comment {
 
-    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", updatable = false, nullable = false)
     private Long id;
+
     @Version
-    @Column(name = "version")
     private int version;
 
     @Column(nullable = false)
@@ -48,31 +47,6 @@ public class Comment implements Serializable {
         this.version = version;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Comment)) {
-            return false;
-        }
-        Comment other = (Comment) obj;
-        if (id != null) {
-            if (!id.equals(other.id)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((id == null) ? 0 : id.hashCode());
-        return result;
-    }
-
     public String getContent() {
         return content;
     }
@@ -90,10 +64,24 @@ public class Comment implements Serializable {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Comment comment = (Comment) o;
+        return Objects.equals(content, comment.content) &&
+                Objects.equals(byUser, comment.byUser);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(content, byUser);
+    }
+
+    @Override
     public String toString() {
-        String result = getClass().getSimpleName() + " ";
-        if (content != null && !content.trim().isEmpty())
-            result += "content: " + content;
-        return result;
+        return "Comment{" +
+                "content='" + content + '\'' +
+                ", byUser=" + byUser +
+                '}';
     }
 }

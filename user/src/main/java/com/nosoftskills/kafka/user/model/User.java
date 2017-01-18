@@ -1,21 +1,24 @@
 package com.nosoftskills.kafka.user.model;
 
+import javax.json.Json;
+import javax.json.JsonNumber;
+import javax.json.JsonObject;
+import javax.json.JsonString;
 import javax.persistence.*;
 import java.io.Serializable;
+import java.io.StringReader;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "USERS")
-public class User implements Serializable {
+public class User {
 
-    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", updatable = false, nullable = false)
     private Long id;
     @Version
-    @Column(name = "version")
     private int version;
 
     @Column(nullable = false)
@@ -63,31 +66,6 @@ public class User implements Serializable {
         this.version = version;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof User)) {
-            return false;
-        }
-        User other = (User) obj;
-        if (id != null) {
-            if (!id.equals(other.id)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((id == null) ? 0 : id.hashCode());
-        return result;
-    }
-
     public String getUserName() {
         return userName;
     }
@@ -128,22 +106,6 @@ public class User implements Serializable {
         this.email = email;
     }
 
-    @Override
-    public String toString() {
-        String result = getClass().getSimpleName() + " ";
-        if (userName != null && !userName.trim().isEmpty())
-            result += "userName: " + userName;
-        if (password != null && !password.trim().isEmpty())
-            result += ", password: " + password;
-        if (firstName != null && !firstName.trim().isEmpty())
-            result += ", firstName: " + firstName;
-        if (lastName != null && !lastName.trim().isEmpty())
-            result += ", lastName: " + lastName;
-        if (email != null && !email.trim().isEmpty())
-            result += ", email: " + email;
-        return result;
-    }
-
     public Set<Payment> getCards() {
         return this.cards;
     }
@@ -154,5 +116,62 @@ public class User implements Serializable {
 
     public void addCard(Payment card) {
         this.cards.add(card);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(userName, user.userName) &&
+                Objects.equals(password, user.password) &&
+                Objects.equals(firstName, user.firstName) &&
+                Objects.equals(lastName, user.lastName) &&
+                Objects.equals(email, user.email);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userName, password, firstName, lastName, email);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "userName='" + userName + '\'' +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", cards=" + cards +
+                '}';
+    }
+
+    public JsonObject toJson() {
+        return Json.createObjectBuilder()
+                .add("id", getId())
+                .add("userName", getUserName())
+                .add("firstName", getFirstName())
+                .add("lastName", getLastName())
+                .add("email", getEmail())
+                .build();
+    }
+
+    public static User fromJsonString(String userJson) {
+        JsonObject jsonObject = Json.createReader(new StringReader(userJson))
+                .readObject();
+        User user = new User();
+        JsonNumber idNumber = jsonObject.getJsonNumber("id");
+        if (idNumber != null) {
+            user.setId(idNumber.longValue());
+        }
+        user.setUserName(jsonObject.getString("userName"));
+        JsonString password = jsonObject.getJsonString("password");
+        if (password != null) {
+            user.setPassword(password.getString());
+        }
+        user.setFirstName(jsonObject.getString("firstName"));
+        user.setLastName(jsonObject.getString("lastName"));
+        user.setEmail(jsonObject.getString("email"));
+        return user;
     }
 }

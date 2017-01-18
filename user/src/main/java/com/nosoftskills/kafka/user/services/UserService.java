@@ -18,18 +18,16 @@ package com.nosoftskills.kafka.user.services;
 import com.nosoftskills.kafka.user.model.User;
 
 import javax.enterprise.context.RequestScoped;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
-import javax.json.JsonNumber;
-import javax.json.JsonObject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceException;
 import javax.transaction.Transactional;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.StringReader;
 import java.net.URI;
 import java.util.List;
 
@@ -41,13 +39,16 @@ public class UserService {
     @Inject
     private EntityManager em;
 
+    @Inject
+    private Event<User> userEvent;
+
     @GET
     public Response getAllUsers() {
         List<User> users = em.createQuery("SELECT users FROM User users", User.class)
                 .getResultList();
         JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
         users.stream()
-                .map(this::toJson)
+                .map(User::toJson)
                 .forEach(arrayBuilder::add);
         return Response.ok(arrayBuilder.build()).build();
     }
@@ -56,11 +57,12 @@ public class UserService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public Response createUser(String userJson) {
-        User user = fromJsonString(userJson);
+        User user = User.fromJsonString(userJson);
         em.persist(user);
+        userEvent.fire(user);
         return Response
                 .created(URI.create("/" + user.getId()))
-                .entity(toJson(user))
+                .entity(user.toJson())
                 .build();
     }
 
@@ -68,14 +70,15 @@ public class UserService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Transactional
     public Response updateUser(String userJson) {
-        User user = fromJsonString(userJson);
+        User user = User.fromJsonString(userJson);
         if (user.getId() != null) {
             User found = em.find(User.class, user.getId());
             if (found != null) {
                 em.merge(user);
+                userEvent.fire(user);
                 return Response
                         .ok()
-                        .entity(toJson(user))
+                        .entity(user.toJson())
                         .build();
             }
             user.setId(null);
@@ -92,35 +95,18 @@ public class UserService {
         } catch (PersistenceException pe) {
             System.out.println("Tables don't exist");
         }
-        em.persist(new User("ivko3", "ivan", "Ivan", "Ivanov", "ivan.ivanov@example.org"));
-        em.persist(new User("kocko07", "koko", "Konstantin", "Stefanov", "konstantin.stefanov@example.org"));
-        em.persist(new User("boboran", "boyan", "Boyan", "Stefanov", "boyan.stefanov@example.org"));
+        User ivko = new User("ivko3", "ivan", "Ivan", "Ivanov", "ivan.ivanov@example.org");
+        em.persist(ivko);
+        User kocko = new User("kocko07", "koko", "Konstantin", "Stefanov", "konstantin.stefanov@example.org");
+        em.persist(kocko);
+        User boboran = new User("boboran", "boyan", "Boyan", "Stefanov", "boyan.stefanov@example.org");
+        em.persist(boboran);
+
+        userEvent.fire(ivko);
+        userEvent.fire(kocko);
+        userEvent.fire(boboran);
         return Response.noContent().build();
     }
 
-    private JsonObject toJson(User user) {
-        return Json.createObjectBuilder()
-                    .add("id", user.getId())
-                    .add("userName", user.getUserName())
-                    .add("firstName", user.getFirstName())
-                    .add("lastName", user.getLastName())
-                    .add("email", user.getEmail())
-                    .build();
-    }
 
-    private User fromJsonString(String userJson) {
-        JsonObject jsonObject = Json.createReader(new StringReader(userJson))
-                .readObject();
-        User user = new User();
-        JsonNumber idNumber = jsonObject.getJsonNumber("id");
-        if (idNumber != null) {
-            user.setId(idNumber.longValue());
-        }
-        user.setUserName(jsonObject.getString("userName"));
-        user.setPassword(jsonObject.getString("password"));
-        user.setFirstName(jsonObject.getString("firstName"));
-        user.setLastName(jsonObject.getString("lastName"));
-        user.setEmail(jsonObject.getString("email"));
-        return user;
-    }
 }

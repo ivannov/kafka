@@ -10,20 +10,19 @@ import javax.persistence.Version;
 
 import com.nosoftskills.kafka.forum.model.Comment;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.HashSet;
 import javax.persistence.OneToMany;
 
 @Entity
-public class Topic implements Serializable {
+public class Topic {
 
-    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", updatable = false, nullable = false)
     private Long id;
+
     @Version
-    @Column(name = "version")
     private int version;
 
     @Column(nullable = false)
@@ -48,45 +47,12 @@ public class Topic implements Serializable {
         this.version = version;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (!(obj instanceof Topic)) {
-            return false;
-        }
-        Topic other = (Topic) obj;
-        if (id != null) {
-            if (!id.equals(other.id)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((id == null) ? 0 : id.hashCode());
-        return result;
-    }
-
     public String getTitle() {
         return title;
     }
 
     public void setTitle(String title) {
         this.title = title;
-    }
-
-    @Override
-    public String toString() {
-        String result = getClass().getSimpleName() + " ";
-        if (title != null && !title.trim().isEmpty())
-            result += "title: " + title;
-        return result;
     }
 
     public Set<Comment> getComments() {
@@ -99,5 +65,27 @@ public class Topic implements Serializable {
 
     public void addComment(Comment comment) {
         this.comments.add(comment);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Topic topic = (Topic) o;
+        return Objects.equals(title, topic.title) &&
+                Objects.equals(comments, topic.comments);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(title, comments);
+    }
+
+    @Override
+    public String toString() {
+        return "Topic{" +
+                "title='" + title + '\'' +
+                ", comments=" + comments +
+                '}';
     }
 }
