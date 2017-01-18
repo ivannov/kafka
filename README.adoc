@@ -1,0 +1,37 @@
+= Microservice persistence showcase
+
+This is a small microservice application that is used to showcase how Apache Kafka can be used to synchronize two services when one of them stores data that is also used by the other one.
+
+In order to run it, you have to run Kafka (along with Zookeeper), then run the two microservices (`forum` and `user`) and then insert or update users in the second one.
+This will cause the `forum` service to insert and update their own representation of the users as well.
+
+First, provision https://kafka.apache.org/quickstart[Provision] Apache Kafka.
+You should use the default port settings.
+
+Next, run `forum` microservice:
+
+----
+cd forum
+mvn wildfly-swarm:run -Dswarm.http.port=8081
+----
+
+After that run the `user` microservice:
+
+----
+cd user
+mvn clean wildfly-swarm:run -Dswarm.http.port=8082
+----
+
+Insert some test users in the `user` microservice:
+
+----
+curl http://localhost:8082/user/reset
+----
+
+They should be replicated automatically to the `forum` microservice.
+You can access both representations of the inserted users by requesting:
+
+----
+curl http://localhost:8081/forum/user
+curl http://localhost:8082/user
+----
