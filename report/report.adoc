@@ -26,7 +26,7 @@ It should be considered as the opposite to the monolith approach, where the appl
 The latter might consist internally of several components and submodules.
 But what is essential is that is deployed as a single archive.
 
-We are going to use a sample moderately large web application to illustrate the how a monolith is turned into microservices and what are the challenges that we face after that.
+We are going to use a sample moderately large web application to illustrate how a monolith is turned into microservices and what are the challenges that we face after that.
 It is a web store that sells goods.
 It was very well developed and its functionality was split into a few submodules.
 The diagram bellow presents the most important of them:
@@ -45,23 +45,23 @@ The monolith model has its own benefits:
 * Monitoring one system is much easier than monitoring multiple ones.
 Same with debugging
 
-However, once the monolith application grows, its development and maintenance becomes more problematic compared to a really modular solutions.
-We will give two scenarios which prove that claim.
+However, once the monolith application grows, its development and maintenance becomes more problematic compared to a fully modular solution.
+We will give three scenarios which prove that claim.
 
 Let's first come back to the delivery model of the e-store.
-It is delivered on a single server (real or virtual, doesn't really matter).
+It is deployed on a single server (real or virtual, doesn't really matter).
 This server needs to be running on powerful hardware to meet the application resource requirements.
-If in peak moments you decide to scale the application out by adding a new server, you have to purchase or land the same amount of hardware.
+If in peak moments you decide to scale the application out by adding a new server, you have to purchase or borrow the same amount of hardware.
 Although the higher system requirements come just from the Store submodule, you must duplicate the whole server.
 
 Another usecase is with updating the application.
 As its owner, you are delivering new features and bug fixes on a regular basis.
-As part of the monolith, you have to run significant set of tests across all the submodules in order to validate a small bug fix in the invoices generation.
+As part of the monolith, you have to run significant set of tests across all the submodules in order to validate a small bug fix in the invoices generation for example.
 Or introduce unnecessary downtime in the Store for example, when you just want to deliver a small feature in the Forum.
-To avoid that, you might decide to deliver features and fixes of all modules together once every two weeks.
-But in this way the teams that are working on each submodule would lose the autonomy to deliver capabilities at its own pace.
+To avoid multiple downtimes, you might decide to deliver features and fixes of all modules together at a certain time interval (let's say once every two weeks).
+But in this way the teams that are working on each submodule would lose the autonomy to deliver capabilities at their own pace.
 
-Developing a monolith applications means sticking to one platform for all the submodules.
+Developing a monolith application means sticking to one platform for all the submodules.
 This means that if the Store performs best if developed in Java backed by Relational Database, you have to use that for the whole e-store.
 No matter that another combination would be more appropriate for any of the other modules.
 
@@ -78,7 +78,7 @@ So if we split our submodules into microservices, we can get an architecture tha
 image::microservices.png[title="Microservice architecture", align="center"]
 
 Now each individual service can be scaled up and out independently from the others.
-The teams that deliver each of them can now be responsible for the whole end-to-end delivery of new features as well as for picking the most suitable technology and framework to implement the respective microservice.
+The teams that develop each of them can now be responsible for the whole end-to-end delivery of new features as well as for picking the most suitable technology and framework to implement the respective microservice.
 
 Of course, picking a microservice architectural approach does not come without additional implications.
 One such implication is that the microservices are not completely isolated semantically.
@@ -93,7 +93,7 @@ Modular or not, split to microservices or developed as a monolith, any reasonabl
 In a classical three-tier application the single database is considered as a central source of truth.
 Even when the business layer is distributed across multiple server nodes, usually the database is shared.
 
-Is this the right approach for microservice architecture as well?
+Is this the right approach for microservice architecture too?
 
 Let's start with a small example.
 Suppose that a microservice decides to update its database schema by for example modifying an existing table.
@@ -111,15 +111,15 @@ Thus it helps ensure that the services are loosely coupled: changes to one servi
 
 Each service can use the type of database that is best suited to its needs.
 For example, if the Forum service does text searches, it could use ElasticSearch.
-If our User Management service also manipulates a social graph, it could use Neo4j.
+If the User Management service also manipulates a social graph, it could use Neo4j.
 
-It doesn't have to be a separate database per service.
+It doesn't necessarily have to be a separate database per service.
 You can also have private tables per service or separate schema per service. <<Richardson,[6]>> <<Richardson2,[7]>>
 
-This approach however comes with a completely different class of problems.
+This approach however comes with a completely different class of challenges.
 Let's take the already mentioned microservices sharing common concepts (like Forum and User Management sharing the concept of a user).
 If we use a central storage, we would have a single table with information about the user and foreign key column(s) in the table(s) that refer to it.
-But in a single database per service there are no shared tables.
+But in the separate database per service approach there are no shared tables.
 So there we need to have separate copy of the table in each store.
 
 image::separate-table-service.png[title="Database per service pattern", align="center"]
@@ -129,10 +129,10 @@ For example if a user changes their name, it will initially go to the User Manag
 After that it has to be replicated to all other "copies" of that data, including the Forum.
 
 Using distributed transactions that span multiple services does not help here.
-This type of transactions are best avoided because of the CAP theorem.
+This type of transactions should be best avoided because of the CAP theorem.
 Moreover, many NoSQL databases (like the Forum in our above example) don’t support them. <<Richardson,[6]>>
 
-The Database per service pattern has also other disadvantages like harder to implement and more difficult to debug.
+The Database per service pattern has also other disadvantages like being harder to implement and more difficult to debug.
 In the next part we will focus, however, on solving the keeping data in sync challenge.
 
 == 3. Solving the data in sync challenge
@@ -178,9 +178,9 @@ According to its official website <<Kafka,[9]>> , it is a distributed streaming 
 The streams are stored in a fault tolerant way and can be processed as they occur.
 According to a study <<Kafka2,[10]>>, it is able to scale to up to 500,000 published and 22,000 consumed messages per second.
 
-We've developed a small project <<Project,[11]>> that showcases the usage of Apache Kafka.
+We've developed a small project <<Project,[11]>> that showcases the usage of Apache Kafka in the context of a web store.
 It consists of two microservices - `forum` and `user`, which share the user domain object.
-In the first project the user representation includes its user name, its display name and the reputation points in the forum.
+In the first project the user representation includes its user name, display name and reputation points.
 In the second one the user attributes are user name, password, first and last name and email.
 
 Users can be only added and modified in the `user` microservices.
