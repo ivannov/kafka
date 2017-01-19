@@ -5,7 +5,7 @@ This is a small microservice application that is used to showcase how Apache Kaf
 In order to run it, you have to run Kafka (along with Zookeeper), then run the two microservices (`forum` and `user`) and then insert or update users in the second one.
 This will cause the `forum` service to insert and update their own representation of the users as well.
 
-First, provision https://kafka.apache.org/quickstart[Provision] Apache Kafka.
+First, https://kafka.apache.org/quickstart[provision] Apache Kafka.
 You should use the default port settings.
 
 Next, run `forum` microservice:
