@@ -167,7 +167,38 @@ image::eda-microservices.png[title="Event driven architecture", align="center"]
 Events are immutable structures that capture an interesting point in time that should be broadcast to peers.
 Peers will listen to the events in which they’re interested and make decisions based on that data, store that data, store some derivative of that data, update their own data based on some decision made with that data, etc. <<Posta,[8]>>
 
+The module responsible for handling those events is the Message Queue or Message Broker.
+There are a lot of message brokers on the market.
+Most of the the traditional ones implement the AMQP standard: RabbitMQ and ActiveMQ to name a few.
+They all provide different styles of routing messages between producers and consumers, delivery guarantees, high availability, etc.
+
+But most recently another solution gained popularity in this area.
+It is Apache Kafka and its capabilities go further beyond those of a message queue.
+According to its official website <<Kafka,[9]>> , it is a distributed streaming platform, where you can publish and subscribe for a stream of records.
+The streams are stored in a fault tolerant way and can be processed as they occur.
+According to a study <<Kafka2,[10]>>, it is able to scale to up to 500,000 published and 22,000 consumed messages per second.
+
+We've developed a small project <<Project,[11]>> that showcases the usage of Apache Kafka.
+It consists of two microservices - `forum` and `user`, which share the user domain object.
+In the first project the user representation includes its user name, its display name and the reputation points in the forum.
+In the second one the user attributes are user name, password, first and last name and email.
+
+Users can be only added and modified in the `user` microservices.
+The `forum` microservice can just manipulate the reputation points.
+If a user is added or modified in the `user` service, the `forum` gets automatically notified and changes its representation accordingly.
+
+Apache Kafka can be easily distributed to more than one node, so that it doesn't become a single point of failure in the microservice architecture.
+If any of the nodes stops functioning, the work will be performed by the others in a transparent to the other parties manner.
+
 == 4. Conclusion
+
+The microservice architecture allows teams to deliver software in much more flexible way than the traditional approaches.
+Not only it reduces coupling between separate application modules, but it enables autonomous release cycle and scaling.
+However, this comes with the cost of more complicated communication between different services.
+And this cost is mostly obvious when it comes to data persistence.
+
+In this paper we showed how event driven architecture and publish subscribe mechanism can help in keeping different microservices data in sync.
+Finally, we showed how it can be implemented with one of the message processing systems on the market - Apache Kafka.
 
 == References
 
@@ -186,3 +217,9 @@ Peers will listen to the events in which they’re interested and make decisions
 [[Richardson2]] [7] Chris Richardson. Does each microservice really need its own database?. 2015. https://plainoldobjects.com/2015/09/02/does-each-microservice-really-need-its-own-database-2/
 
 [[Posta]] [8] Christian Posta. The Hardest Part About Microservices: Your Data. 2016. http://blog.christianposta.com/microservices/the-hardest-part-about-microservices-data/
+
+[[Kafka]] [9] Apache Kafka. https://kafka.apache.org/intro
+
+[[Kafka2]] [10] Jay Kreps, Neha Narkhede, Jun Rao. Kafka: a Distributed Messaging System for Log Processing. 2011. http://research.microsoft.com/en-us/um/people/srikanth/netdb11/netdb11papers/netdb11-final12.pdf
+
+[[Project]] [11] Showcase project. https://github.com/ivannov/kafka
