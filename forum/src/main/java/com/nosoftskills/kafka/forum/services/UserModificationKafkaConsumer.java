@@ -17,12 +17,9 @@ package com.nosoftskills.kafka.forum.services;
 
 import com.nosoftskills.kafka.forum.model.User;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.*;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.persistence.EntityManager;
@@ -30,49 +27,16 @@ import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
 import java.io.StringReader;
-import java.util.Collections;
-import java.util.Properties;
 
-@Singleton
-@Startup
+@ApplicationScoped
 public class UserModificationKafkaConsumer {
 
     @PersistenceContext
     private EntityManager em;
 
-    @Resource
-    private TimerService timerService;
-
-    private KafkaConsumer<String, String> consumer;
-
-
-    @PostConstruct
-    public void consumeKafkaEvents() {
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("group.id", "test");
-
-        this.consumer = new KafkaConsumer<>(properties);
-        consumer.subscribe(Collections.singletonList("user"));
-
-        timerService.createIntervalTimer(200L, 500L, new TimerConfig("userConsumer", false));
-    }
-
-    private void cancelTimer(Timer timer) {
-        System.out.println("Cancelling timer " + timer.getInfo());
-        timer.cancel();
-    }
-
-    @Timeout
-    public void listenForUsers() {
-        ConsumerRecords<String, String> records = consumer.poll(100);
-        records.forEach(this::storeUser);
-    }
-
-    private void storeUser(ConsumerRecord<String, String> userRecord) {
+    public void storeUser(@Observes ConsumerRecord<String, String> userRecord) {
         String userJson = userRecord.value();
+        System.out.println("Storing: " + userJson);
         JsonObject jsonObject = Json.createReader(new StringReader(userJson))
                 .readObject();
 

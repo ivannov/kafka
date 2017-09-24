@@ -22,21 +22,16 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 import java.util.Properties;
 
 @ApplicationScoped
-public class UserModificationKafkaProducer {
+public class UserModificationObserver {
 
+    @Inject
+    @KafkaProducerConfig
     private KafkaProducer<String, String> kafkaProducer;
 
-    @PostConstruct
-    public void initializeKafka() {
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        kafkaProducer = new KafkaProducer<>(properties);
-    }
 
     public void userModified(@Observes User modifiedUser) {
         kafkaProducer.send(new ProducerRecord<>("user", modifiedUser.toJson().toString()));
