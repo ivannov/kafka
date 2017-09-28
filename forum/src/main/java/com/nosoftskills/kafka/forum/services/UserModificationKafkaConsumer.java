@@ -15,70 +15,36 @@
  */
 package com.nosoftskills.kafka.forum.services;
 
+import bg.jug.cdi.kafka.Consumes;
 import com.nosoftskills.kafka.forum.model.User;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.ejb.*;
+import javax.enterprise.context.ApplicationScoped;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
+import javax.transaction.Transactional;
 import java.io.StringReader;
-import java.util.Collections;
-import java.util.Properties;
 
-@Singleton
-@Startup
+@ApplicationScoped
 public class UserModificationKafkaConsumer {
 
     @PersistenceContext
     private EntityManager em;
 
-    @Resource
-    private TimerService timerService;
-
-    private KafkaConsumer<String, String> consumer;
-
-
-    @PostConstruct
-    public void consumeKafkaEvents() {
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "localhost:9092");
-        properties.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.put("group.id", "test");
-
-        this.consumer = new KafkaConsumer<>(properties);
-        consumer.subscribe(Collections.singletonList("user"));
-
-        timerService.createIntervalTimer(200L, 500L, new TimerConfig("userConsumer", false));
-    }
-
-    private void cancelTimer(Timer timer) {
-        System.out.println("Cancelling timer " + timer.getInfo());
-        timer.cancel();
-    }
-
-    @Timeout
-    public void listenForUsers() {
-        ConsumerRecords<String, String> records = consumer.poll(100);
-        records.forEach(this::storeUser);
-    }
-
-    private void storeUser(ConsumerRecord<String, String> userRecord) {
-        String userJson = userRecord.value();
+    @Consumes(topic = "user")
+    @Transactional
+    public void listenForUsers(ConsumerRecord<String, String> record) {
+        String userJson = record.value();
         JsonObject jsonObject = Json.createReader(new StringReader(userJson))
                 .readObject();
 
         String userName = jsonObject.getString("userName");
         String displayName = jsonObject.getString("firstName") + " " +
-                             jsonObject.getString("lastName");
+                jsonObject.getString("lastName");
 
         TypedQuery<User> query = em.createQuery("SELECT u FROM User u WHERE u.userName = :userName", User.class);
         query.setParameter("userName", userName);
@@ -93,4 +59,5 @@ public class UserModificationKafkaConsumer {
             System.out.println("New user persisted");
         }
     }
+
 }
